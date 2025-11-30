@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CPU Scheduler – Final Fixed (Frontend Only)</title>
+<title>CPU Scheduler – Final Fixed</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- Material Icons -->
@@ -140,6 +140,18 @@ body.dark-theme{
   font-size:26px;
 }
 
+/* NEW: Hamburger menu for mobile */
+#menuBtn{
+  display:none;
+  cursor:pointer;
+  padding:6px;
+  border-radius:50%;
+  background:rgba(0,0,0,0.1);
+}
+#menuBtn .material-icons-outlined{
+  font-size:26px;
+}
+
 .theme-toggle{
   width:36px;
   height:36px;
@@ -168,6 +180,7 @@ body.dark-theme{
   background:linear-gradient(180deg,#f3f5ff,#e8edff);
   padding-top:18px;
   box-shadow:2px 0 10px rgba(0,0,0,0.06);
+  transition:transform .3s ease;
 }
 
 .nav-item{
@@ -207,7 +220,28 @@ body.dark-theme .nav-item:hover{
   background:rgba(116,136,255,0.25);
 }
 
-/* MAIN AREA */
+/* MOBILE SIDEBAR BEHAVIOR */
+@media(max-width:768px){
+  #menuBtn{
+    display:block;
+  }
+  .app-body{
+    flex-direction:column;
+  }
+  .sidebar{
+    position:fixed;
+    top:60px;
+    left:0;
+    height:calc(100vh - 60px);
+    transform:translateX(-260px);
+    z-index:1000;
+  }
+  .sidebar.open{
+    transform:translateX(0px);
+  }
+}
+
+/* MAIN CONTENT AREA */
 .main{
   flex:1;
   padding:24px 26px;
@@ -275,21 +309,7 @@ body.dark-theme .card-value{
   color:#f7f7ff;
 }
 
-/* FORM / INPUTS */
-#add h2,#dash h2,#algo h2,#res h2{
-  margin-bottom:10px;
-}
-
-#add label{
-  margin-top:16px;
-  margin-bottom:6px;
-  font-weight:600;
-  color:#333;
-}
-body.dark-theme #add label{
-  color:#e3e5ff;
-}
-
+/* FORM */
 .form-control{
   width:100%;
   padding:10px 12px;
@@ -305,7 +325,6 @@ body.dark-theme #add label{
   box-shadow:0 0 10px rgba(109,131,242,0.25);
 }
 
-/* DARK INPUTS */
 body.dark-theme .form-control{
   background:#0f1223;
   color:#f5f5ff;
@@ -327,6 +346,7 @@ body.dark-theme .form-control{
   box-shadow:0 6px 20px rgba(109,131,242,0.5);
   transform:translateY(-1px);
 }
+
 .btn-secondary{
   background:#e7ebfa;
   color:#333;
@@ -360,20 +380,21 @@ td{
   border-bottom:1px solid #eef1ff;
 }
 
-/* DARK TABLE */
 body.dark-theme table{
   background:#101226;
   box-shadow:0 8px 24px rgba(0,0,0,0.7);
 }
+
 body.dark-theme th{
   background:linear-gradient(135deg,#3b458c,#5e6ad0);
 }
+
 body.dark-theme td{
   border-bottom:1px solid rgba(92,98,168,0.6);
   color:#f5f5ff;
 }
 
-/* GANTT CONTAINER */
+/* GANTT */
 .gantt-container{
   margin-top:14px;
   padding:16px;
@@ -385,7 +406,6 @@ body.dark-theme td{
   box-shadow:0 6px 20px rgba(0,0,0,0.4);
 }
 
-/* GANTT BLOCKS */
 .gantt-block{
   background:linear-gradient(135deg,#6d83f2,#8f63e4);
   padding:8px 12px;
@@ -431,6 +451,12 @@ body.dark-theme td{
 
   <div class="header">
     <div class="header-left">
+
+      <!-- NEW: Hamburger menu button -->
+      <span id="menuBtn" onclick="toggleMenu()">
+        <span class="material-icons-outlined">menu</span>
+      </span>
+
       <span class="material-icons-outlined">speed</span>
       <h3>CPU Scheduler Dashboard</h3>
     </div>
@@ -445,7 +471,7 @@ body.dark-theme td{
 
   <div class="app-body">
     <!-- SIDEBAR -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
       <div class="nav-item active" onclick="openTab('dash',this)">
         <span class="material-icons-outlined">dashboard</span>
         <span>Dashboard</span>
@@ -612,6 +638,11 @@ function toggleTheme(){
   }
 }
 
+/* ---------- MOBILE MENU ---------- */
+function toggleMenu(){
+  document.getElementById("sidebar").classList.toggle("open");
+}
+
 /* ---------- NAVIGATION ---------- */
 function openTab(id, el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -619,6 +650,10 @@ function openTab(id, el){
 
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
+
+  if(window.innerWidth <= 768){
+    document.getElementById("sidebar").classList.remove("open");
+  }
 }
 
 /* ---------- TASK DATA ---------- */
@@ -639,7 +674,7 @@ function addTask(){
   const b = Number(bStr);
 
   if(isNaN(a) || isNaN(b) || a < 0 || b <= 0){
-    alert("Enter valid numeric values (arrival ≥ 0, burst > 0)");
+    alert("Enter valid numbers");
     return;
   }
 
@@ -649,7 +684,6 @@ function addTask(){
   updateTable();
   document.getElementById("c_tasks").textContent = tasks.length;
 
-  // clear inputs
   document.getElementById("inA").value = "";
   document.getElementById("inB").value = "";
   document.getElementById("inP").value = "";
@@ -675,13 +709,7 @@ function clearTasks(){
   document.getElementById("c_tasks").textContent = 0;
 }
 
-/* ---------- ALGO SELECT ---------- */
-document.getElementById("algoSelect").addEventListener("change",()=>{
-  const v = document.getElementById("algoSelect").value;
-  document.getElementById("qBox").style.display = (v==="rr") ? "block" : "none";
-});
-
-/* ---------- HELPER: CLONE TASKS ---------- */
+/* ---------- COPY TASKS FOR SIM ---------- */
 function cloneTasks(){
   return tasks.map(t => ({
     id: t.id,
@@ -692,8 +720,8 @@ function cloneTasks(){
   }));
 }
 
-/* ---------- SCHEDULERS ---------- */
-
+/* ---------- ALGORITHMS ---------- */
+// FCFS
 function scheduleFCFS(list){
   list.sort((a,b)=>a.arrival - b.arrival);
   let t = 0;
@@ -701,279 +729,190 @@ function scheduleFCFS(list){
 
   for(const p of list){
     if(t < p.arrival) t = p.arrival;
-    const start = t;
-    const end = t + p.burst;
-    gantt.push({id:p.id,start,end});
-    t = end;
+    gantt.push({id:p.id, start:t, end:t+p.burst});
+    t += p.burst;
   }
-
   return {gantt, extra:{}};
 }
 
+// SJF (Non-preemptive)
 function scheduleSJF(list){
-  let t = 0;
+  list.sort((a,b)=>a.arrival - b.arrival);
   const n = list.length;
   let completed = 0;
   const gantt = [];
-
-  list.sort((a,b)=>a.arrival - b.arrival);
-
-  t = list[0]?.arrival ?? 0;
+  let t = 0;
 
   while(completed < n){
-    const available = list.filter(p => p.remaining > 0 && p.arrival <= t);
-    if(available.length === 0){
-      const next = list.find(p => p.remaining > 0);
-      if(!next) break;
-      t = next.arrival;
+    const ready = list.filter(p => p.remaining>0 && p.arrival<=t);
+    if(ready.length === 0){
+      t++;
       continue;
     }
 
-    available.sort((a,b)=>a.burst - b.burst);
-    const cur = available[0];
-    if(t < cur.arrival) t = cur.arrival;
+    ready.sort((a,b)=>a.burst - b.burst);
+    const cur = ready[0];
 
     const start = t;
     const end = t + cur.remaining;
-    gantt.push({id:cur.id,start,end});
-
+    gantt.push({id:cur.id, start, end});
     t = end;
     cur.remaining = 0;
     completed++;
   }
-
   return {gantt, extra:{}};
 }
 
+// SRTF (Preemptive SJF)
 function scheduleSRTF(list){
   list.sort((a,b)=>a.arrival - b.arrival);
-  let t = 0;
-  const n = list.length;
   const gantt = [];
-  let i = 0;
-  let done = 0;
-  const ready = [];
+  let t = list[0].arrival;
 
-  if(n>0) t = list[0].arrival;
-
-  while(done < n){
-    while(i<n && list[i].arrival <= t){
-      ready.push(list[i]);
-      i++;
-    }
-
+  while(list.some(p=>p.remaining>0)){
+    const ready = list.filter(p=>p.remaining>0 && p.arrival<=t);
     if(ready.length === 0){
-      if(i < n){
-        t = list[i].arrival;
-        continue;
-      } else break;
+      t++;
+      continue;
     }
 
     ready.sort((a,b)=>a.remaining - b.remaining);
     const cur = ready[0];
 
-    const start = t;
-    const end = t + 1;
-    gantt.push({id:cur.id,start,end});
-
-    cur.remaining -= 1;
-    t = end;
-
-    if(cur.remaining === 0){
-      ready.shift();
-      done++;
-    }
+    gantt.push({id:cur.id, start:t, end:t+1});
+    cur.remaining--;
+    t++;
   }
-
   return {gantt, extra:{}};
 }
 
+// Round Robin
 function scheduleRR(list, q){
   list.sort((a,b)=>a.arrival - b.arrival);
   const gantt = [];
-  const n = list.length;
-  let t = 0;
-  let i = 0;
+  let t = list[0].arrival;
   const ready = [];
+  let i = 0;
 
-  if(n>0) t = list[0].arrival;
+  while(i<list.length && list[i].arrival<=t){
+    ready.push(list[i]);
+    i++;
+  }
 
-  while(true){
-    while(i<n && list[i].arrival <= t){
+  while(ready.length>0 || i<list.length){
+    if(ready.length===0){
+      t = list[i].arrival;
       ready.push(list[i]);
       i++;
-    }
-
-    if(ready.length === 0){
-      if(i<n){
-        t = list[i].arrival;
-        continue;
-      } else break;
     }
 
     const cur = ready.shift();
     const run = Math.min(q, cur.remaining);
-    const start = t;
-    const end = t + run;
-    gantt.push({id:cur.id,start,end});
+    gantt.push({id:cur.id, start:t, end:t+run});
     cur.remaining -= run;
-    t = end;
+    t += run;
 
-    while(i<n && list[i].arrival <= t){
+    while(i<list.length && list[i].arrival<=t){
       ready.push(list[i]);
       i++;
     }
 
-    if(cur.remaining > 0){
-      ready.push(cur);
-    }
+    if(cur.remaining>0) ready.push(cur);
   }
 
   return {gantt, extra:{}};
 }
 
-/* ---------- ENERGY-EFFICIENT (EE) SCHEDULER ---------- */
-/*
-  Idea:
-  - Classify tasks based on burst:
-      burst <= avgBurst  -> interactive (short)
-      burst >  avgBurst  -> background (long)
-  - Interactive: run with small slice (1 unit)
-  - Background: run with bigger slice (2 units)
-  - Simple energy model:
-      energy += duration * weight
-      weight = 1.2 for interactive, 0.8 for background
-*/
+// Energy Efficient
 function scheduleEE(list){
-  list.sort((a,b)=>a.arrival - b.arrival);
   const n = list.length;
-  const gantt = [];
+  if(n===0) return {gantt:[], extra:{energy:0}};
 
-  if(n === 0) return {gantt:[], extra:{energy:0}};
-
-  const avgBurst = list.reduce((sum,p)=>sum+p.burst,0) / n;
-
-  let t = list[0].arrival;
-  let i = 0;
-  const readyInt = [];
-  const readyBg  = [];
-  let energy = 0;
-
-  // give each process a "type" based on burst
+  const avg = list.reduce((s,p)=>s+p.burst,0)/n;
   list.forEach(p=>{
-    p.type = (p.burst <= avgBurst) ? "interactive" : "background";
+    p.type = (p.burst<=avg) ? "interactive" : "background";
   });
 
-  while(true){
-    while(i<n && list[i].arrival <= t){
-      if(list[i].type === "interactive") readyInt.push(list[i]);
-      else readyBg.push(list[i]);
-      i++;
+  let t = list[0].arrival;
+  const gantt = [];
+  let energy = 0;
+
+  while(list.some(p=>p.remaining>0)){
+    const ready = list.filter(p=>p.remaining>0 && p.arrival<=t);
+    if(ready.length===0){
+      t++;
+      continue;
     }
 
-    if(readyInt.length === 0 && readyBg.length === 0){
-      if(i < n){
-        t = list[i].arrival;
-        continue;
-      }else break;
-    }
+    let cur, slice, weight;
 
-    let cur;
-    let slice;
-    let weight;
-
-    if(readyInt.length > 0){
-      readyInt.sort((a,b)=>a.remaining - b.remaining);
-      cur = readyInt[0];
-      slice = 1;
-      weight = 1.2;
+    const inter = ready.filter(p=>p.type==="interactive");
+    if(inter.length>0){
+      inter.sort((a,b)=>a.remaining-b.remaining);
+      cur = inter[0]; slice=1; weight=1.2;
     }else{
-      readyBg.sort((a,b)=>a.remaining - b.remaining);
-      cur = readyBg[0];
-      slice = 2;
-      weight = 0.8;
+      const back = ready.filter(p=>p.type==="background");
+      back.sort((a,b)=>a.remaining-b.remaining);
+      cur = back[0]; slice=2; weight=0.8;
     }
 
     const run = Math.min(slice, cur.remaining);
-    const start = t;
-    const end   = t + run;
-    gantt.push({id:cur.id,start,end});
+    gantt.push({id:cur.id, start:t, end:t+run});
     cur.remaining -= run;
-    t = end;
-
+    t += run;
     energy += run * weight;
-
-    while(i<n && list[i].arrival <= t){
-      if(list[i].type === "interactive") readyInt.push(list[i]);
-      else readyBg.push(list[i]);
-      i++;
-    }
-
-    if(cur.remaining === 0){
-      if(cur.type === "interactive"){
-        const idx = readyInt.indexOf(cur);
-        if(idx !== -1) readyInt.splice(idx,1);
-      }else{
-        const idx = readyBg.indexOf(cur);
-        if(idx !== -1) readyBg.splice(idx,1);
-      }
-    }
   }
 
   return {gantt, extra:{energy}};
 }
 
-/* ---------- METRICS & RENDERING ---------- */
-
+/* ---------- METRICS ---------- */
 function computeResults(list, gantt){
   const results = [];
 
-  for(const p of list){
+  list.forEach(p=>{
+    const blocks = gantt.filter(g=>g.id === p.id);
     let comp = 0;
-    for(const g of gantt){
-      if(g.id === p.id && g.end > comp){
-        comp = g.end;
-      }
-    }
+    blocks.forEach(b=>{ if(b.end>comp) comp=b.end; });
+
     const tat = comp - p.arrival;
-    const wt  = tat - p.burst;
+    const wt = tat - p.burst;
 
     results.push({
-      id: p.id,
-      arrival: p.arrival,
-      burst: p.burst,
-      completion: comp,
-      waiting: wt,
-      turnaround: tat
+      id:p.id,
+      arrival:p.arrival,
+      burst:p.burst,
+      completion:comp,
+      waiting:wt,
+      turnaround:tat
     });
-  }
+  });
 
-  let sw = 0, st = 0;
+  let sw=0, st=0;
   results.forEach(r=>{
     sw += r.waiting;
     st += r.turnaround;
   });
 
-  const avg_wait = results.length ? (sw / results.length) : 0;
-  const avg_turn = results.length ? (st / results.length) : 0;
-
-  return {results, avg_wait, avg_turn};
+  return {
+    results,
+    avg_wait: sw/results.length,
+    avg_turn: st/results.length
+  };
 }
 
-function renderResults(algo, resultsData, gantt, energyExtra){
-  const {results, avg_wait, avg_turn} = resultsData;
-
+/* ---------- DISPLAY RESULTS ---------- */
+function renderResults(algo, data, gantt, extra){
   document.getElementById("r_algo").textContent = algo.toUpperCase();
-  document.getElementById("r_wait").textContent = avg_wait.toFixed(2);
-  document.getElementById("r_turn").textContent = avg_turn.toFixed(2);
+  document.getElementById("r_wait").textContent = data.avg_wait.toFixed(2);
+  document.getElementById("r_turn").textContent = data.avg_turn.toFixed(2);
 
-  // Per-process table
   let rows = `<tr>
     <th>PID</th><th>Arrival</th><th>Burst</th>
     <th>Completion</th><th>Waiting</th><th>Turnaround</th>
   </tr>`;
 
-  results.forEach(r=>{
+  data.results.forEach(r=>{
     rows += `<tr>
       <td>T${r.id}</td>
       <td>${r.arrival}</td>
@@ -986,76 +925,62 @@ function renderResults(algo, resultsData, gantt, energyExtra){
 
   document.getElementById("resTable").innerHTML = rows;
 
-  // Gantt
-  const gDiv = document.getElementById("gantt");
-  gDiv.innerHTML = "";
+  const gc = document.getElementById("gantt");
+  gc.innerHTML = "";
 
   gantt.forEach(g=>{
     const box = document.createElement("div");
-    box.className = "gantt-block";
-    const width = (g.end - g.start) * 40;
-    box.style.minWidth = width + "px";
+    box.className="gantt-block";
+    box.style.minWidth = (g.end-g.start)*40 + "px";
     box.innerHTML = `
       <div>T${g.id}</div>
-      <div style="font-size:12px;opacity:0.9;">${g.start} → ${g.end}</div>
+      <div style="font-size:12px;opacity:.9;">${g.start} → ${g.end}</div>
     `;
-    gDiv.appendChild(box);
+    gc.appendChild(box);
   });
 
-  // Dashboard updates
   document.getElementById("c_algo").textContent = algo.toUpperCase();
-  let statusText = "Completed";
-  if(algo === "ee" && energyExtra && typeof energyExtra.energy !== "undefined"){
-    statusText = `Completed (Energy ≈ ${energyExtra.energy.toFixed(2)})`;
-  }
-  document.getElementById("c_status").textContent = statusText;
+  document.getElementById("c_status").textContent = 
+    algo==="ee" ? `Completed (Energy ${extra.energy.toFixed(2)})` : "Completed";
 
-  // Auto switch to Results tab
   openTab("res", document.querySelectorAll(".nav-item")[3]);
 }
 
-/* ---------- RUN SIMULATION (FRONTEND ONLY) ---------- */
+/* ---------- RUN SIM (FRONTEND) ---------- */
 function runSim(){
-  if(tasks.length === 0){
+  if(tasks.length===0){
     alert("Add tasks first");
     return;
   }
 
   const algo = document.getElementById("algoSelect").value;
   if(!algo){
-    alert("Choose an algorithm");
+    alert("Choose algorithm");
     return;
   }
 
-  const clone = cloneTasks();
-  let ganttInfo;
+  const list = cloneTasks();
+  let out;
 
-  if(algo === "fcfs"){
-    ganttInfo = scheduleFCFS(clone);
-  }
-  else if(algo === "sjf"){
-    ganttInfo = scheduleSJF(clone);
-  }
-  else if(algo === "srtf"){
-    ganttInfo = scheduleSRTF(clone);
-  }
+  if(algo === "fcfs") out = scheduleFCFS(list);
+  else if(algo === "sjf") out = scheduleSJF(list);
+  else if(algo === "srtf") out = scheduleSRTF(list);
   else if(algo === "rr"){
-    const qVal = Number(document.getElementById("quantum").value);
-    if(!qVal || qVal <= 0){
-      alert("Enter valid quantum for Round Robin");
+    const q = Number(document.getElementById("quantum").value);
+    if(!q || q<=0){
+      alert("Enter valid quantum");
       return;
     }
-    ganttInfo = scheduleRR(clone, qVal);
+    out = scheduleRR(list, q);
   }
-  else if(algo === "ee"){
-    ganttInfo = scheduleEE(clone);
-  }else{
+  else if(algo === "ee") out = scheduleEE(list);
+  else{
     alert("Unknown algorithm");
     return;
   }
 
-  const resultsData = computeResults(clone, ganttInfo.gantt);
-  renderResults(algo, resultsData, ganttInfo.gantt, ganttInfo.extra || {});
+  const results = computeResults(list, out.gantt);
+  renderResults(algo, results, out.gantt, out.extra);
 }
 </script>
 
