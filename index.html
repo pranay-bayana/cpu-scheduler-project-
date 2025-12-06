@@ -823,16 +823,18 @@ function scheduleRR(list, q){
   return {gantt, extra:{}};
 }
 
-// Energy Efficient
+// Energy Efficient (EE) with adjusted weights
 function scheduleEE(list){
   const n = list.length;
   if(n===0) return {gantt:[], extra:{energy:0}};
 
+  // Average burst to classify tasks
   const avg = list.reduce((s,p)=>s+p.burst,0)/n;
   list.forEach(p=>{
     p.type = (p.burst<=avg) ? "interactive" : "background";
   });
 
+  list.sort((a,b)=>a.arrival - b.arrival);
   let t = list[0].arrival;
   const gantt = [];
   let energy = 0;
@@ -849,11 +851,15 @@ function scheduleEE(list){
     const inter = ready.filter(p=>p.type==="interactive");
     if(inter.length>0){
       inter.sort((a,b)=>a.remaining-b.remaining);
-      cur = inter[0]; slice=1; weight=1.2;
+      cur = inter[0];
+      slice = 1;      // small slice for interactivity
+      weight = 1.0;   // normal energy for interactive
     }else{
       const back = ready.filter(p=>p.type==="background");
       back.sort((a,b)=>a.remaining-b.remaining);
-      cur = back[0]; slice=2; weight=0.8;
+      cur = back[0];
+      slice = 2;      // bigger slice for background
+      weight = 0.5;   // low energy for background
     }
 
     const run = Math.min(slice, cur.remaining);
@@ -901,6 +907,19 @@ function computeResults(list, gantt){
   };
 }
 
+/* ---------- ENERGY FOR NON-EE ALGORITHMS ---------- */
+function calculateEnergy(gantt, algo){
+  // For FCFS, SJF, SRTF, RR → assume weight = 1 for all CPU time
+  let energy = 0;
+  gantt.forEach(b=>{
+    const run = b.end - b.start;
+    if(run > 0){
+      energy += run * 1;
+    }
+  });
+  return energy;
+}
+
 /* ---------- DISPLAY RESULTS ---------- */
 function renderResults(algo, data, gantt, extra){
   document.getElementById("r_algo").textContent = algo.toUpperCase();
@@ -939,9 +958,22 @@ function renderResults(algo, data, gantt, extra){
     gc.appendChild(box);
   });
 
+  // Total time (for understanding / viva, shown in console)
+  let totalTime = 0;
+  gantt.forEach(b=>{ if(b.end>totalTime) totalTime = b.end; });
+  console.log("Total Time ("+algo+"): ", totalTime);
+
+  // Energy for all algorithms
+  let totalEnergy;
+  if(algo === "ee" && extra && typeof extra.energy === "number"){
+    totalEnergy = extra.energy.toFixed(2);
+  }else{
+    totalEnergy = calculateEnergy(gantt, algo).toFixed(2);
+  }
+
   document.getElementById("c_algo").textContent = algo.toUpperCase();
-  document.getElementById("c_status").textContent = 
-    algo==="ee" ? `Completed (Energy ${extra.energy.toFixed(2)})` : "Completed";
+  document.getElementById("c_status").textContent =
+    `Completed (Energy ${totalEnergy})`;
 
   openTab("res", document.querySelectorAll(".nav-item")[3]);
 }
@@ -980,9 +1012,19 @@ function runSim(){
   }
 
   const results = computeResults(list, out.gantt);
-  renderResults(algo, results, out.gantt, out.extra);
+  renderResults(algo, results, out.gantt, out.extra || {});
 }
-</script>
 
+/* ---------- SHOW/HIDE QUANTUM FOR RR ---------- */
+document.getElementById("algoSelect").addEventListener("change", function(){
+  const val = this.value;
+  const qBox = document.getElementById("qBox");
+  if(val === "rr"){
+    qBox.style.display = "block";
+  } else {
+    qBox.style.display = "none";
+  }
+});
+</script>
 </body>
 </html>
