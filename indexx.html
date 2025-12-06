@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CPU Scheduler – Final Fixed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+<style>
+/* ============= RESET ============= */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Poppins',sans-serif;
+}
+
+/* ============= LOGIN PAGE ============= */
+#loginPage{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#0d0d0d;
+}
+
+.login-box{
+  width:360px;
+  background:rgba(255,255,255,0.04);
+  padding:40px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.1);
+  backdrop-filter:blur(14px);
+  box-shadow:0 0 25px rgba(0,212,255,0.15);
+}
+
+.login-box h2{
+  text-align:center;
+  margin-bottom:25px;
+  color:#00eaff;
+  font-weight:500;
+}
+
+.input-box{
+  position:relative;
+  margin-bottom:25px;
+}
+
+.input-box input{
+  width:100%;
+  padding:12px;
+  background:transparent;
+  border:none;
+  border-bottom:2px solid rgba(255,255,255,0.3);
+  color:#fff;
+  outline:none;
+}
+
+.input-box label{
+  position:absolute;
+  left:10px;
+  top:12px;
+  color:#aaa;
+  pointer-events:none;
+  transition:0.3s;
+}
+
+.input-box input:focus,
+.input-box input:valid{
+  border-bottom-color:#00eaff;
+}
+
+.input-box input:focus+label,
+.input-box input:valid+label{
+  top:-8px;
+  font-size:13px;
+  color:#00eaff;
+}
+
+.login-btn{
+  width:100%;
+  padding:12px;
+  background:#00eaff;
+  border:none;
+  border-radius:6px;
+  font-size:17px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.login-btn:hover{
+  box-shadow:0 0 12px rgba(0,212,255,0.6);
+}
+
+.error{
+  display:none;
+  margin-top:10px;
+  text-align:center;
+  color:#ff4d4d;
+  font-size:14px;
+}
+
+/* ============= APP BASE ============= */
+
+body.light{
+  background:linear-gradient(135deg,#eef2ff,#f8fbff);
+  color:#222;
+}
+
+body.dark-theme{
+  background:radial-gradient(circle at top,#232746,#050814);
+  color:#f5f5f5;
+}
+
+#appWrapper{
+  display:none;
+}
+
+/* HEADER */
+.header{
+  height:60px;
+  background:linear-gradient(135deg,#6d83f2,#8f63e4);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 22px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.15);
+}
+
+.header-left{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.header-left .material-icons-outlined{
+  font-size:26px;
+}
+
+/* NEW: Hamburger menu for mobile */
+#menuBtn{
+  display:none;
+  cursor:pointer;
+  padding:6px;
+  border-radius:50%;
+  background:rgba(0,0,0,0.1);
+}
+#menuBtn .material-icons-outlined{
+  font-size:26px;
+}
+
+.theme-toggle{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:none;
+  background:rgba(255,255,255,0.25);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.theme-toggle .material-icons-outlined{
+  font-size:22px;
+  color:#fff;
+}
+
+/* BODY LAYOUT */
+.app-body{
+  display:flex;
+  height:calc(100vh - 60px);
+}
+
+/* SIDEBAR */
+.sidebar{
+  width:240px;
+  background:linear-gradient(180deg,#f3f5ff,#e8edff);
+  padding-top:18px;
+  box-shadow:2px 0 10px rgba(0,0,0,0.06);
+  transition:transform .3s ease;
+}
+
+.nav-item{
+  padding:10px 18px;
+  margin:6px 10px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  transition:0.25s;
+  color:#333;
+}
+.nav-item .material-icons-outlined{
+  font-size:20px;
+}
+
+.nav-item:hover{
+  background:rgba(109,131,242,0.22);
+  transform:translateX(4px);
+}
+
+.nav-item.active{
+  background:linear-gradient(135deg,#6d83f2,#8f63e4);
+  color:#fff;
+  box-shadow:0 4px 12px rgba(109,131,242,0.6);
+}
+
+/* DARK SIDEBAR */
+body.dark-theme .sidebar{
+  background:linear-gradient(180deg,#17192f,#131528);
+}
+body.dark-theme .nav-item{
+  color:#e0e2ff;
+}
+body.dark-theme .nav-item:hover{
+  background:rgba(116,136,255,0.25);
+}
+
+/* MOBILE SIDEBAR BEHAVIOR */
+@media(max-width:768px){
+  #menuBtn{
+    display:block;
+  }
+  .app-body{
+    flex-direction:column;
+  }
+  .sidebar{
+    position:fixed;
+    top:60px;
+    left:0;
+    height:calc(100vh - 60px);
+    transform:translateX(-260px);
+    z-index:1000;
+  }
+  .sidebar.open{
+    transform:translateX(0px);
+  }
+}
+
+/* MAIN CONTENT AREA */
+.main{
+  flex:1;
+  padding:24px 26px;
+  overflow-y:auto;
+}
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+  animation:fadeIn .28s;
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(6px);}
+  to{opacity:1; transform:translateY(0);}
+}
+
+/* CARDS */
+.card-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px;
+}
+
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:18px;
+  width:220px;
+  box-shadow:0 4px 18px rgba(0,0,0,0.12);
+  transition:0.25s;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 25px rgba(109,131,242,0.3);
+}
+
+.card-title{
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:#777;
+}
+
+.card-value{
+  font-size:26px;
+  margin-top:6px;
+  font-weight:700;
+}
+
+/* DARK CARDS */
+body.dark-theme .card{
+  background:#15172c;
+  border:1px solid rgba(130,145,255,0.4);
+  box-shadow:0 8px 24px rgba(0,0,0,0.7);
+}
+body.dark-theme .card-title{
+  color:#a4a9e7;
+}
+body.dark-theme .card-value{
+  color:#f7f7ff;
+}
+
+/* FORM */
+.form-control{
+  width:100%;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #ccd2ef;
+  background:#fff;
+  margin-bottom:8px;
+  transition:0.2s;
+}
+
+.form-control:focus{
+  border-color:#6d83f2;
+  box-shadow:0 0 10px rgba(109,131,242,0.25);
+}
+
+body.dark-theme .form-control{
+  background:#0f1223;
+  color:#f5f5ff;
+  border:1px solid #40467f;
+}
+
+/* BUTTONS */
+.btn{
+  padding:10px 18px;
+  border-radius:999px;
+  border:none;
+  background:linear-gradient(135deg,#6d83f2,#8f63e4);
+  color:#fff;
+  font-size:15px;
+  cursor:pointer;
+  transition:0.2s;
+}
+.btn:hover{
+  box-shadow:0 6px 20px rgba(109,131,242,0.5);
+  transform:translateY(-1px);
+}
+
+.btn-secondary{
+  background:#e7ebfa;
+  color:#333;
+  margin-left:8px;
+}
+body.dark-theme .btn-secondary{
+  background:#262a4d;
+  color:#f5f5ff;
+}
+
+/* TABLE */
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8px;
+  background:#fff;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 4px 18px rgba(0,0,0,0.08);
+}
+
+th{
+  padding:10px;
+  background:linear-gradient(135deg,#6d83f2,#8f63e4);
+  color:#fff;
+  font-weight:500;
+}
+
+td{
+  padding:10px;
+  border-bottom:1px solid #eef1ff;
+}
+
+body.dark-theme table{
+  background:#101226;
+  box-shadow:0 8px 24px rgba(0,0,0,0.7);
+}
+
+body.dark-theme th{
+  background:linear-gradient(135deg,#3b458c,#5e6ad0);
+}
+
+body.dark-theme td{
+  border-bottom:1px solid rgba(92,98,168,0.6);
+  color:#f5f5ff;
+}
+
+/* GANTT */
+.gantt-container{
+  margin-top:14px;
+  padding:16px;
+  border-radius:20px;
+  background:#11131f;
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  box-shadow:0 6px 20px rgba(0,0,0,0.4);
+}
+
+.gantt-block{
+  background:linear-gradient(135deg,#6d83f2,#8f63e4);
+  padding:8px 12px;
+  border-radius:14px;
+  color:#fff;
+  font-size:14px;
+  font-weight:600;
+  text-align:center;
+  min-width:60px;
+  box-shadow:0 4px 15px rgba(109,131,242,0.4);
+  transition:0.2s;
+}
+.gantt-block:hover{
+  transform:translateY(-2px) scale(1.02);
+}
+</style>
+</head>
+
+<body class="light">
+
+<!-- ============= LOGIN PAGE ============= -->
+<div id="loginPage">
+  <div class="login-box">
+    <h2>Login</h2>
+
+    <div class="input-box">
+      <input type="text" id="username" required>
+      <label>Username</label>
+    </div>
+
+    <div class="input-box">
+      <input type="password" id="password" required>
+      <label>Password</label>
+    </div>
+
+    <button class="login-btn" onclick="validate()">Login</button>
+    <div id="err" class="error"></div>
+  </div>
+</div>
+
+<!-- ============= MAIN APP ============= -->
+<div id="appWrapper">
+
+  <div class="header">
+    <div class="header-left">
+
+      <!-- NEW: Hamburger menu button -->
+      <span id="menuBtn" onclick="toggleMenu()">
+        <span class="material-icons-outlined">menu</span>
+      </span>
+
+      <span class="material-icons-outlined">speed</span>
+      <h3>CPU Scheduler Dashboard</h3>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="userInfo"></div>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon" class="material-icons-outlined">dark_mode</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="nav-item active" onclick="openTab('dash',this)">
+        <span class="material-icons-outlined">dashboard</span>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="openTab('add',this)">
+        <span class="material-icons-outlined">playlist_add</span>
+        <span>Add Tasks</span>
+      </div>
+      <div class="nav-item" onclick="openTab('algo',this)">
+        <span class="material-icons-outlined">settings_suggest</span>
+        <span>Algorithm</span>
+      </div>
+      <div class="nav-item" onclick="openTab('res',this)">
+        <span class="material-icons-outlined">bar_chart</span>
+        <span>Results</span>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+
+      <!-- DASHBOARD TAB -->
+      <div id="dash" class="section active">
+        <h2>Dashboard</h2>
+        <div class="card-row">
+          <div class="card">
+            <div class="card-title">Total Tasks</div>
+            <div id="c_tasks" class="card-value">0</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Algorithm</div>
+            <div id="c_algo" class="card-value">None</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Status</div>
+            <div id="c_status" class="card-value">Not Run</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADD TASKS TAB -->
+      <div id="add" class="section">
+        <h2>Add Task</h2>
+
+        <label>Arrival Time</label>
+        <input id="inA" class="form-control">
+
+        <label>Burst Time</label>
+        <input id="inB" class="form-control">
+
+        <label>Priority</label>
+        <input id="inP" class="form-control">
+
+        <button class="btn" onclick="addTask()">Add</button>
+        <button class="btn btn-secondary" onclick="clearTasks()">Clear</button>
+
+        <table id="taskTable">
+          <tr><th>ID</th><th>Arrival</th><th>Burst</th><th>Priority</th></tr>
+        </table>
+      </div>
+
+      <!-- ALGORITHM TAB -->
+      <div id="algo" class="section">
+        <h2>Select Algorithm</h2>
+
+        <select id="algoSelect" class="form-control">
+          <option value="">Choose Algorithm</option>
+          <option value="fcfs">FCFS</option>
+          <option value="sjf">SJF</option>
+          <option value="srtf">SRTF</option>
+          <option value="rr">Round Robin</option>
+          <option value="ee">Energy Efficient (EE)</option>
+        </select>
+
+        <div id="qBox" style="display:none;">
+          <label>Quantum</label>
+          <input id="quantum" class="form-control">
+        </div>
+
+        <button class="btn" style="margin-top:10px;" onclick="runSim()">Run Simulation</button>
+      </div>
+
+      <!-- RESULTS TAB -->
+      <div id="res" class="section">
+        <h2>Results</h2>
+
+        <div class="card-row">
+          <div class="card">
+            <div class="card-title">Algorithm</div>
+            <div id="r_algo" class="card-value"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Avg Wait</div>
+            <div id="r_wait" class="card-value"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Avg Turnaround</div>
+            <div id="r_turn" class="card-value"></div>
+          </div>
+        </div>
+
+        <h3 style="margin-top:16px;">Per-Process Times</h3>
+        <table id="resTable">
+          <tr>
+            <th>PID</th>
+            <th>Arrival</th>
+            <th>Burst</th>
+            <th>Completion</th>
+            <th>Waiting</th>
+            <th>Turnaround</th>
+          </tr>
+        </table>
+
+        <h3 style="margin-top:16px;">Gantt Chart</h3>
+        <div class="gantt-container" id="gantt"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- LOGIN ---------- */
+function validate(){
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+  const err = document.getElementById("err");
+
+  const strong = /^(?=.*[0-9])(?=.*[!@#$%^&*]).{6,}$/;
+
+  if(!u || !p){
+    err.style.display="block";
+    err.textContent="Username & Password required";
+    return;
+  }
+  if(!strong.test(p)){
+    err.style.display="block";
+    err.textContent="Password must contain number, special char & 6+ chars";
+    return;
+  }
+
+  err.style.display="block";
+  err.style.color="#00eaff";
+  err.textContent="Strong Password ✔ Logging in...";
+
+  setTimeout(()=>{
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("appWrapper").style.display="block";
+    document.getElementById("userInfo").textContent="User: "+u;
+  },800);
+}
+
+/* ---------- THEME TOGGLE ---------- */
+function toggleTheme(){
+  const body = document.body;
+  const icon = document.getElementById("themeIcon");
+
+  if(body.classList.contains("dark-theme")){
+    body.classList.remove("dark-theme");
+    icon.textContent="dark_mode";
+  }else{
+    body.classList.add("dark-theme");
+    icon.textContent="light_mode";
+  }
+}
+
+/* ---------- MOBILE MENU ---------- */
+function toggleMenu(){
+  document.getElementById("sidebar").classList.toggle("open");
+}
+
+/* ---------- NAVIGATION ---------- */
+function openTab(id, el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+
+  if(window.innerWidth <= 768){
+    document.getElementById("sidebar").classList.remove("open");
+  }
+}
+
+/* ---------- TASK DATA ---------- */
+let tasks = [];
+let tid = 1;
+
+function addTask(){
+  const aStr = document.getElementById("inA").value;
+  const bStr = document.getElementById("inB").value;
+  const pVal = document.getElementById("inP").value || "-";
+
+  if(aStr==="" || bStr===""){
+    alert("Enter Arrival & Burst Time");
+    return;
+  }
+
+  const a = Number(aStr);
+  const b = Number(bStr);
+
+  if(isNaN(a) || isNaN(b) || a < 0 || b <= 0){
+    alert("Enter valid numbers");
+    return;
+  }
+
+  tasks.push({id:tid, arrival:a, burst:b, remaining:b, priority:pVal});
+  tid++;
+
+  updateTable();
+  document.getElementById("c_tasks").textContent = tasks.length;
+
+  document.getElementById("inA").value = "";
+  document.getElementById("inB").value = "";
+  document.getElementById("inP").value = "";
+}
+
+function updateTable(){
+  const table = document.getElementById("taskTable");
+  table.innerHTML = "<tr><th>ID</th><th>Arrival</th><th>Burst</th><th>Priority</th></tr>";
+  tasks.forEach(t=>{
+    table.innerHTML += `<tr>
+      <td>${t.id}</td>
+      <td>${t.arrival}</td>
+      <td>${t.burst}</td>
+      <td>${t.priority}</td>
+    </tr>`;
+  });
+}
+
+function clearTasks(){
+  tasks = [];
+  tid = 1;
+  updateTable();
+  document.getElementById("c_tasks").textContent = 0;
+}
+
+/* ---------- COPY TASKS FOR SIM ---------- */
+function cloneTasks(){
+  return tasks.map(t => ({
+    id: t.id,
+    arrival: t.arrival,
+    burst: t.burst,
+    remaining: t.burst,
+    priority: t.priority
+  }));
+}
+
+/* ---------- ALGORITHMS ---------- */
+// FCFS
+function scheduleFCFS(list){
+  list.sort((a,b)=>a.arrival - b.arrival);
+  let t = 0;
+  const gantt = [];
+
+  for(const p of list){
+    if(t < p.arrival) t = p.arrival;
+    gantt.push({id:p.id, start:t, end:t+p.burst});
+    t += p.burst;
+  }
+  return {gantt, extra:{}};
+}
+
+// SJF (Non-preemptive)
+function scheduleSJF(list){
+  list.sort((a,b)=>a.arrival - b.arrival);
+  const n = list.length;
+  let completed = 0;
+  const gantt = [];
+  let t = 0;
+
+  while(completed < n){
+    const ready = list.filter(p => p.remaining>0 && p.arrival<=t);
+    if(ready.length === 0){
+      t++;
+      continue;
+    }
+
+    ready.sort((a,b)=>a.burst - b.burst);
+    const cur = ready[0];
+
+    const start = t;
+    const end = t + cur.remaining;
+    gantt.push({id:cur.id, start, end});
+    t = end;
+    cur.remaining = 0;
+    completed++;
+  }
+  return {gantt, extra:{}};
+}
+
+// SRTF (Preemptive SJF)
+function scheduleSRTF(list){
+  list.sort((a,b)=>a.arrival - b.arrival);
+  const gantt = [];
+  let t = list[0].arrival;
+
+  while(list.some(p=>p.remaining>0)){
+    const ready = list.filter(p=>p.remaining>0 && p.arrival<=t);
+    if(ready.length === 0){
+      t++;
+      continue;
+    }
+
+    ready.sort((a,b)=>a.remaining - b.remaining);
+    const cur = ready[0];
+
+    gantt.push({id:cur.id, start:t, end:t+1});
+    cur.remaining--;
+    t++;
+  }
+  return {gantt, extra:{}};
+}
+
+// Round Robin
+function scheduleRR(list, q){
+  list.sort((a,b)=>a.arrival - b.arrival);
+  const gantt = [];
+  let t = list[0].arrival;
+  const ready = [];
+  let i = 0;
+
+  while(i<list.length && list[i].arrival<=t){
+    ready.push(list[i]);
+    i++;
+  }
+
+  while(ready.length>0 || i<list.length){
+    if(ready.length===0){
+      t = list[i].arrival;
+      ready.push(list[i]);
+      i++;
+    }
+
+    const cur = ready.shift();
+    const run = Math.min(q, cur.remaining);
+    gantt.push({id:cur.id, start:t, end:t+run});
+    cur.remaining -= run;
+    t += run;
+
+    while(i<list.length && list[i].arrival<=t){
+      ready.push(list[i]);
+      i++;
+    }
+
+    if(cur.remaining>0) ready.push(cur);
+  }
+
+  return {gantt, extra:{}};
+}
+
+// Energy Efficient (EE) with adjusted weights
+function scheduleEE(list){
+  const n = list.length;
+  if(n===0) return {gantt:[], extra:{energy:0}};
+
+  // Average burst to classify tasks
+  const avg = list.reduce((s,p)=>s+p.burst,0)/n;
+  list.forEach(p=>{
+    p.type = (p.burst<=avg) ? "interactive" : "background";
+  });
+
+  list.sort((a,b)=>a.arrival - b.arrival);
+  let t = list[0].arrival;
+  const gantt = [];
+  let energy = 0;
+
+  while(list.some(p=>p.remaining>0)){
+    const ready = list.filter(p=>p.remaining>0 && p.arrival<=t);
+    if(ready.length===0){
+      t++;
+      continue;
+    }
+
+    let cur, slice, weight;
+
+    const inter = ready.filter(p=>p.type==="interactive");
+    if(inter.length>0){
+      inter.sort((a,b)=>a.remaining-b.remaining);
+      cur = inter[0];
+      slice = 1;      // small slice for interactivity
+      weight = 1.0;   // normal energy for interactive
+    }else{
+      const back = ready.filter(p=>p.type==="background");
+      back.sort((a,b)=>a.remaining-b.remaining);
+      cur = back[0];
+      slice = 2;      // bigger slice for background
+      weight = 0.5;   // low energy for background
+    }
+
+    const run = Math.min(slice, cur.remaining);
+    gantt.push({id:cur.id, start:t, end:t+run});
+    cur.remaining -= run;
+    t += run;
+    energy += run * weight;
+  }
+
+  return {gantt, extra:{energy}};
+}
+
+/* ---------- METRICS ---------- */
+function computeResults(list, gantt){
+  const results = [];
+
+  list.forEach(p=>{
+    const blocks = gantt.filter(g=>g.id === p.id);
+    let comp = 0;
+    blocks.forEach(b=>{ if(b.end>comp) comp=b.end; });
+
+    const tat = comp - p.arrival;
+    const wt = tat - p.burst;
+
+    results.push({
+      id:p.id,
+      arrival:p.arrival,
+      burst:p.burst,
+      completion:comp,
+      waiting:wt,
+      turnaround:tat
+    });
+  });
+
+  let sw=0, st=0;
+  results.forEach(r=>{
+    sw += r.waiting;
+    st += r.turnaround;
+  });
+
+  return {
+    results,
+    avg_wait: sw/results.length,
+    avg_turn: st/results.length
+  };
+}
+
+/* ---------- ENERGY FOR NON-EE ALGORITHMS ---------- */
+function calculateEnergy(gantt, algo){
+  // For FCFS, SJF, SRTF, RR → assume weight = 1 for all CPU time
+  let energy = 0;
+  gantt.forEach(b=>{
+    const run = b.end - b.start;
+    if(run > 0){
+      energy += run * 1;
+    }
+  });
+  return energy;
+}
+
+/* ---------- DISPLAY RESULTS ---------- */
+function renderResults(algo, data, gantt, extra){
+  document.getElementById("r_algo").textContent = algo.toUpperCase();
+  document.getElementById("r_wait").textContent = data.avg_wait.toFixed(2);
+  document.getElementById("r_turn").textContent = data.avg_turn.toFixed(2);
+
+  let rows = `<tr>
+    <th>PID</th><th>Arrival</th><th>Burst</th>
+    <th>Completion</th><th>Waiting</th><th>Turnaround</th>
+  </tr>`;
+
+  data.results.forEach(r=>{
+    rows += `<tr>
+      <td>T${r.id}</td>
+      <td>${r.arrival}</td>
+      <td>${r.burst}</td>
+      <td>${r.completion}</td>
+      <td>${r.waiting}</td>
+      <td>${r.turnaround}</td>
+    </tr>`;
+  });
+
+  document.getElementById("resTable").innerHTML = rows;
+
+  const gc = document.getElementById("gantt");
+  gc.innerHTML = "";
+
+  gantt.forEach(g=>{
+    const box = document.createElement("div");
+    box.className="gantt-block";
+    box.style.minWidth = (g.end-g.start)*40 + "px";
+    box.innerHTML = `
+      <div>T${g.id}</div>
+      <div style="font-size:12px;opacity:.9;">${g.start} → ${g.end}</div>
+    `;
+    gc.appendChild(box);
+  });
+
+  // Total time (for understanding / viva, shown in console)
+  let totalTime = 0;
+  gantt.forEach(b=>{ if(b.end>totalTime) totalTime = b.end; });
+  console.log("Total Time ("+algo+"): ", totalTime);
+
+  // Energy for all algorithms
+  let totalEnergy;
+  if(algo === "ee" && extra && typeof extra.energy === "number"){
+    totalEnergy = extra.energy.toFixed(2);
+  }else{
+    totalEnergy = calculateEnergy(gantt, algo).toFixed(2);
+  }
+
+  document.getElementById("c_algo").textContent = algo.toUpperCase();
+  document.getElementById("c_status").textContent =
+    `Completed (Energy ${totalEnergy})`;
+
+  openTab("res", document.querySelectorAll(".nav-item")[3]);
+}
+
+/* ---------- RUN SIM (FRONTEND) ---------- */
+function runSim(){
+  if(tasks.length===0){
+    alert("Add tasks first");
+    return;
+  }
+
+  const algo = document.getElementById("algoSelect").value;
+  if(!algo){
+    alert("Choose algorithm");
+    return;
+  }
+
+  const list = cloneTasks();
+  let out;
+
+  if(algo === "fcfs") out = scheduleFCFS(list);
+  else if(algo === "sjf") out = scheduleSJF(list);
+  else if(algo === "srtf") out = scheduleSRTF(list);
+  else if(algo === "rr"){
+    const q = Number(document.getElementById("quantum").value);
+    if(!q || q<=0){
+      alert("Enter valid quantum");
+      return;
+    }
+    out = scheduleRR(list, q);
+  }
+  else if(algo === "ee") out = scheduleEE(list);
+  else{
+    alert("Unknown algorithm");
+    return;
+  }
+
+  const results = computeResults(list, out.gantt);
+  renderResults(algo, results, out.gantt, out.extra || {});
+}
+
+/* ---------- SHOW/HIDE QUANTUM FOR RR ---------- */
+document.getElementById("algoSelect").addEventListener("change", function(){
+  const val = this.value;
+  const qBox = document.getElementById("qBox");
+  if(val === "rr"){
+    qBox.style.display = "block";
+  } else {
+    qBox.style.display = "none";
+  }
+});
+</script>
+</body>
+</html>
